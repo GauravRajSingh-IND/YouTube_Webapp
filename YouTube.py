@@ -12,13 +12,13 @@ class YouTubeAnalyzer:
         load_dotenv()
 
         self.url = url
-
         self.openai_api_key = os.getenv('OPENAI_API_KEY')
         self.llm = OpenAI(
             temperature=0.1,
             openai_api_key=self.openai_api_key,
             max_tokens=1000,
-
+            frequency_penalty=0.5,
+            timeout=60,
         )
         self.text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=4000,
