@@ -23,7 +23,6 @@ class YouTubeAnalyzer:
         self.text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=4000,
             chunk_overlap=0,
-            model="gpt-4o-mini"
         )
 
     def load_youtube_content(self, method="direct"):
@@ -75,3 +74,7 @@ class YouTubeAnalyzer:
         except Exception as e:
             raise Exception(f"Error loading YouTube content: {str(e)}")
 
+
+test=YouTubeAnalyzer(url="https://www.youtube.com/watch?v=h0DHDp1FbmQ&list=PLqZXAkvF1bPNQER9mLmDbntNfSpzdDIU5&index=10")
+result= test.load_youtube_content()
+print(result)
