@@ -1,5 +1,5 @@
 from dotenv import load_dotenv
-from pytubefix import YouTube
+import pytube
 import os
 
 from langchain_openai import OpenAI
@@ -62,20 +62,25 @@ class YouTubeAnalyzer:
                 return loader.load()
 
             elif method == "pytube":
-                # Method 3: Use pytubefix directly
-                try:
-                    yt = YouTube(url)
-                    if 'en' in yt.captions:
-                        transcript = yt.captions['en']
-                    elif yt.captions:
-                        transcript = next(iter(yt.captions.values()))
-                    else:
-                        raise ValueError("No captions available for this video")
+                # Method 3: Use pytube directly
+                yt = pytube.YouTube(url)
 
+                # Use dictionary-like access to captions
+                captions = yt.captions
+                transcript = None
+
+                # Check if English captions exist
+                if 'en' in captions:
+                    transcript = captions['en']
+                elif captions:
+                    # If English is not available, fallback to the first available caption
+                    transcript = next(iter(captions.values()))
+
+                if transcript:
                     text = transcript.generate_srt_captions()
                     return [{"page_content": text, "metadata": {"title": yt.title, "url": url}}]
-                except Exception as e:
-                    raise ValueError(f"Error retrieving captions: {str(e)}")
+                else:
+                    raise Exception("No captions available for this video.")
 
             else:
                 raise ValueError(f"Unsupported method: {method}")
