@@ -103,3 +103,32 @@ class YouTubeAnalyzer:
             verbose=True
         )
         return chain.invoke(input=chunks)
+
+    def process_video(self, url, method="direct"):
+        """
+        Complete pipeline to process a video: load, split, and summarize
+
+        Args:
+            url (str): YouTube video URL
+            method (str): Loading method for YouTube content
+
+        Returns:
+            dict: Summarized video content
+        """
+        try:
+            # Load content
+            documents = self.load_youtube_content(url, method)
+            if not documents:
+                raise Exception("No content loaded from video")
+
+            # Split text
+            chunks = self.split_text(documents)
+            if not chunks:
+                raise Exception("No chunks created from documents")
+
+            # Summarize
+            summary = self.summarize_video(chunks)
+            return summary
+
+        except Exception as e:
+            raise Exception(f"Error processing video: {str(e)}")
