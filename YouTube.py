@@ -1,5 +1,5 @@
 from dotenv import load_dotenv
-import pytube
+from pytubefix import YouTube
 import os
 
 from langchain_openai import OpenAI
@@ -17,6 +17,8 @@ class YouTubeAnalyzer:
         """
         load_dotenv()
         self.openai_api_key = openai_api_key or os.getenv('OPENAI_API_KEY')
+        if not self.openai_api_key:
+            raise ValueError("OpenAI API key is not set. Please set the OPENAI_API_KEY environment variable.")
         self.llm = OpenAI(
             temperature=0.1,
             openai_api_key=self.openai_api_key
@@ -60,14 +62,20 @@ class YouTubeAnalyzer:
                 return loader.load()
 
             elif method == "pytube":
-                # Method 3: Use pytube directly
-                yt = pytube.YouTube(url)
-                transcript = yt.captions.get_by_language_code('en')
-                if transcript is None:
-                    transcript = yt.captions.all()[0]  # Get first available caption
+                # Method 3: Use pytubefix directly
+                try:
+                    yt = YouTube(url)
+                    if 'en' in yt.captions:
+                        transcript = yt.captions['en']
+                    elif yt.captions:
+                        transcript = next(iter(yt.captions.values()))
+                    else:
+                        raise ValueError("No captions available for this video")
 
-                text = transcript.generate_srt_captions()
-                return [{"page_content": text, "metadata": {"title": yt.title, "url": url}}]
+                    text = transcript.generate_srt_captions()
+                    return [{"page_content": text, "metadata": {"title": yt.title, "url": url}}]
+                except Exception as e:
+                    raise ValueError(f"Error retrieving captions: {str(e)}")
 
             else:
                 raise ValueError(f"Unsupported method: {method}")
@@ -124,6 +132,7 @@ class YouTubeAnalyzer:
                 # Load content using the current method
                 documents = self.load_youtube_content(url, method)
                 if documents:
+                    print(f"Successfully loaded content using method: {method}")
                     break  # Exit the loop if content is successfully loaded
             except Exception as e:
                 # If a method fails, log the error and try the next method
