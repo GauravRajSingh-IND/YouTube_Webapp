@@ -19,16 +19,24 @@ def home_page():
         if url:
             try:
                 # Use the YouTubeAnalyzer to summarize the content
-                analyzer = YouTubeAnalyzer(openai_api_key=os.getenv(key="OPENAI_API_KEY"))  # Replace with your key or load from .env
-                summary = analyzer.process_video(url)['output_text']
+                api_key = os.getenv("OPENAI_API_KEY")  # Ensure correct retrieval of the API key
+                analyzer = YouTubeAnalyzer(openai_api_key=api_key)
 
-                print(summary)
+                # Process the video and get the summary
+                result = analyzer.process_video(url)
+
+                # You can format the result here if needed
+                summary = result.get('output_text', 'No summary found')  # Assuming the result has 'output_text'
+
+                print(summary)  # Optionally log the summary for debugging
             except Exception as e:
                 error_message = f"Error: {str(e)}"
+                print(f"Error processing video: {str(e)}")  # Log error for debugging
         else:
             error_message = "Please provide a valid URL."
 
     return render_template("index.html", summary=summary, error_message=error_message)
 
+
 if __name__ == "__main__":
-    app.run()
+    app.run()  # Enable debug mode for easier troubleshooting during development
