@@ -1,24 +1,30 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>YouTube Video Summarizer</title>
-</head>
+<!-- ... head section remains the same ... -->
 <body>
     <h1>YouTube Video Summarizer</h1>
 
-    <!-- Form to get YouTube URL -->
     <form method="POST">
         <label for="url">Enter YouTube Video URL:</label>
         <input type="text" id="url" name="url" required>
         <button type="submit">Summarize</button>
     </form>
 
-    {% if summary %}
-        <h2>Video Summary:</h2>
-        <p>{{ summary }}</p>
-    {% elif error_message %}
+    <!-- Debug info -->
+    <div style="background-color: #eee; padding: 10px; margin: 10px 0;">
+        <p>Debug Info:</p>
+        <p>Content type: {{ content.__class__.__name__ if content else 'None' }}</p>
+        <p>Content empty: {{ content is none }}</p>
+    </div>
+
+    {% if content is not none %}
+        <div class="content">
+            <h2>Video Content:</h2>
+            <p>{{ content }}</p>
+        </div>
+    {% endif %}
+
+    {% if error_message %}
         <h2 style="color: red;">Error:</h2>
         <p>{{ error_message }}</p>
     {% endif %}
