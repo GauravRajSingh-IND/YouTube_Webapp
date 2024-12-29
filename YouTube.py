@@ -5,6 +5,7 @@ import os
 from langchain_openai import OpenAI
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import YoutubeLoader
+from langchain.chains.summarize import load_summarize_chain
 
 
 class YouTubeAnalyzer:
@@ -85,3 +86,20 @@ class YouTubeAnalyzer:
             list: Split chunks of text
         """
         return self.text_splitter.split_documents(documents)
+
+    def summarize_video(self, chunks):
+        """
+        Summarize video content from text chunks
+
+        Args:
+            chunks (list): List of text chunks to summarize
+
+        Returns:
+            dict: Summarized text
+        """
+        chain = load_summarize_chain(
+            llm=self.llm,
+            chain_type="map_reduce",
+            verbose=True
+        )
+        return chain.invoke(input=chunks)
