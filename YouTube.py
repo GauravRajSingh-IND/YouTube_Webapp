@@ -74,7 +74,14 @@ class YouTubeAnalyzer:
         except Exception as e:
             raise Exception(f"Error loading YouTube content: {str(e)}")
 
+    def split_text(self, documents):
+        """
+        Split documents into smaller chunks
 
-test=YouTubeAnalyzer(url="https://www.youtube.com/watch?v=h0DHDp1FbmQ&list=PLqZXAkvF1bPNQER9mLmDbntNfSpzdDIU5&index=10")
-result= test.load_youtube_content()
-print(result)
+        Args:
+            documents (list): List of documents to split
+
+        Returns:
+            list: Split chunks of text
+        """
+        return self.text_splitter.split_documents(documents)
