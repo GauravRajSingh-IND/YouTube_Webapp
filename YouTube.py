@@ -1,6 +1,7 @@
 from dotenv import load_dotenv
-import pytube
 import os
+import yt_dlp
+import requests
 
 from langchain_openai import OpenAI
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -8,12 +9,12 @@ from langchain_community.document_loaders import YoutubeLoader
 from langchain.chains.summarize import load_summarize_chain
 
 class YouTubeAnalyzer:
-    def __init__(self, openai_api_key=os.getenv(key="OPENAI_API_KEY")):
+    def __init__(self, openai_api_key=os.getenv("OPENAI_API_KEY")):
         """
-        Initialize the YouTubeSummarizer with OpenAI API key
+        Initialize the YouTubeSummarizer with OpenAI API key.
 
         Args:
-            openai_api_key (str, optional): OpenAI API key. If not provided, will try to load from environment
+            openai_api_key (str, optional): OpenAI API key. If not provided, will try to load from environment.
         """
         load_dotenv()
         self.openai_api_key = openai_api_key or os.getenv('OPENAI_API_KEY')
@@ -30,14 +31,14 @@ class YouTubeAnalyzer:
 
     def load_youtube_content(self, url, method="direct"):
         """
-        Load YouTube video content using different methods
+        Load YouTube video content using different methods.
 
         Args:
-            url (str): YouTube video URL
-            method (str): Loading method ('direct', 'alternative', or 'pytube')
+            url (str): YouTube video URL.
+            method (str): Loading method ('direct', 'alternative', 'yt-dlp', or 'pytube').
 
         Returns:
-            list: Loaded documents
+            list: Loaded documents.
         """
         try:
             if method == "direct":
@@ -61,8 +62,27 @@ class YouTubeAnalyzer:
                 )
                 return loader.load()
 
+            elif method == "yt-dlp":
+                # Method 3: Use yt-dlp to extract subtitles
+                ydl_opts = {
+                    'quiet': True,
+                    'writeautomaticsub': True,  # Extract subtitles
+                    'subtitleslangs': ['en'],  # Only English subtitles
+                    'skip_download': True,  # Don't download the video
+                    'outtmpl': '/tmp/%(id)s.%(ext)s',  # Save the subtitle in a temporary directory
+                }
+
+                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                    result = ydl.extract_info(url, download=False)
+                    if 'subtitles' in result and 'en' in result['subtitles']:
+                        subtitle_url = result['subtitles']['en'][0]['url']
+                        subtitle_text = self._download_subtitles(subtitle_url)
+                        return [{"page_content": subtitle_text, "metadata": {"title": result.get("title"), "url": url}}]
+                    else:
+                        raise Exception("No subtitles available for this video.")
+
             elif method == "pytube":
-                # Method 3: Use pytube directly
+                # Method 4: Use pytube directly
                 yt = pytube.YouTube(url)
 
                 # Use dictionary-like access to captions
@@ -88,27 +108,46 @@ class YouTubeAnalyzer:
         except Exception as e:
             raise Exception(f"Error loading YouTube content: {str(e)}")
 
-    def split_text(self, documents):
+    def _download_subtitles(self, subtitle_url):
         """
-        Split documents into smaller chunks
+        Helper function to download subtitles from the given URL.
 
         Args:
-            documents (list): List of documents to split
+            subtitle_url (str): URL of the subtitle file.
 
         Returns:
-            list: Split chunks of text
+            str: Subtitle text.
+        """
+        try:
+            response = requests.get(subtitle_url)
+            if response.status_code == 200:
+                return response.text
+            else:
+                raise Exception("Failed to download subtitles.")
+        except Exception as e:
+            raise Exception(f"Error downloading subtitles: {str(e)}")
+
+    def split_text(self, documents):
+        """
+        Split documents into smaller chunks.
+
+        Args:
+            documents (list): List of documents to split.
+
+        Returns:
+            list: Split chunks of text.
         """
         return self.text_splitter.split_documents(documents)
 
     def summarize_video(self, chunks):
         """
-        Summarize video content from text chunks
+        Summarize video content from text chunks.
 
         Args:
-            chunks (list): List of text chunks to summarize
+            chunks (list): List of text chunks to summarize.
 
         Returns:
-            dict: Summarized text
+            dict: Summarized text.
         """
         chain = load_summarize_chain(
             llm=self.llm,
@@ -123,12 +162,12 @@ class YouTubeAnalyzer:
         Tries multiple methods to load content until one succeeds.
 
         Args:
-            url (str): YouTube video URL
+            url (str): YouTube video URL.
 
         Returns:
-            dict: Summarized video content
+            dict: Summarized video content.
         """
-        methods = ["direct", "alternative", "pytube"]  # Available methods
+        methods = ["direct", "alternative", "yt-dlp", "pytube"]  # Available methods
         documents = None
 
         # Try each method until one succeeds
