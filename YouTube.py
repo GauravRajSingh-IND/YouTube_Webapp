@@ -104,23 +104,36 @@ class YouTubeAnalyzer:
         )
         return chain.invoke(input=chunks)
 
-    def process_video(self, url, method="direct"):
+    def process_video(self, url):
         """
-        Complete pipeline to process a video: load, split, and summarize
+        Complete pipeline to process a video: load, split, and summarize.
+        Tries multiple methods to load content until one succeeds.
 
         Args:
             url (str): YouTube video URL
-            method (str): Loading method for YouTube content
 
         Returns:
             dict: Summarized video content
         """
-        try:
-            # Load content
-            documents = self.load_youtube_content(url, method)
-            if not documents:
-                raise Exception("No content loaded from video")
+        methods = ["direct", "alternative", "pytube"]  # Available methods
+        documents = None
 
+        # Try each method until one succeeds
+        for method in methods:
+            try:
+                # Load content using the current method
+                documents = self.load_youtube_content(url, method)
+                if documents:
+                    break  # Exit the loop if content is successfully loaded
+            except Exception as e:
+                # If a method fails, log the error and try the next method
+                print(f"Method '{method}' failed: {str(e)}")
+
+        # If no content is loaded after trying all methods, raise an error
+        if not documents:
+            raise Exception("Failed to load content from video using any method")
+
+        try:
             # Split text
             chunks = self.split_text(documents)
             if not chunks:
