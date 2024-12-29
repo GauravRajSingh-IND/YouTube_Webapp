@@ -7,26 +7,26 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import YoutubeLoader
 from langchain.chains.summarize import load_summarize_chain
 
-
 class YouTubeAnalyzer:
-    def __init__(self, url):
-        load_dotenv()
+    def __init__(self, openai_api_key=os.getenv(key="OPENAI_API_KEY")):
+        """
+        Initialize the YouTubeSummarizer with OpenAI API key
 
-        self.url = url
-        self.openai_api_key = os.getenv('OPENAI_API_KEY')
+        Args:
+            openai_api_key (str, optional): OpenAI API key. If not provided, will try to load from environment
+        """
+        load_dotenv()
+        self.openai_api_key = openai_api_key or os.getenv('OPENAI_API_KEY')
         self.llm = OpenAI(
             temperature=0.1,
-            openai_api_key=self.openai_api_key,
-            max_tokens=1000,
-            frequency_penalty=0.5,
-            timeout=60,
+            openai_api_key=self.openai_api_key
         )
         self.text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=4000,
-            chunk_overlap=0,
+            chunk_overlap=0
         )
 
-    def load_youtube_content(self, method="direct"):
+    def load_youtube_content(self, url, method="direct"):
         """
         Load YouTube video content using different methods
 
@@ -40,7 +40,7 @@ class YouTubeAnalyzer:
         try:
             if method == "direct":
                 # Method 1: Clean URL and use basic parameters
-                video_id = self.url.split("watch?v=")[1].split("&")[0]
+                video_id = url.split("watch?v=")[1].split("&")[0]
                 clean_url = f"https://www.youtube.com/watch?v={video_id}"
 
                 loader = YoutubeLoader.from_youtube_url(
@@ -52,7 +52,7 @@ class YouTubeAnalyzer:
             elif method == "alternative":
                 # Method 2: Use alternative parameters
                 loader = YoutubeLoader.from_youtube_url(
-                    youtube_url=self.url,
+                    youtube_url=url,
                     add_video_info=False,
                     language=["en"],
                     translation="en"
@@ -61,13 +61,13 @@ class YouTubeAnalyzer:
 
             elif method == "pytube":
                 # Method 3: Use pytube directly
-                yt = pytube.YouTube(self.url)
+                yt = pytube.YouTube(url)
                 transcript = yt.captions.get_by_language_code('en')
                 if transcript is None:
                     transcript = yt.captions.all()[0]  # Get first available caption
 
                 text = transcript.generate_srt_captions()
-                return [{"page_content": text, "metadata": {"title": yt.title, "url": self.url}}]
+                return [{"page_content": text, "metadata": {"title": yt.title, "url": url}}]
 
             else:
                 raise ValueError(f"Unsupported method: {method}")
